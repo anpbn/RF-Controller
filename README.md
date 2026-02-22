@@ -23,4 +23,14 @@ ESP8266 + 433MHz 射频发射模块的自定义信号编辑器。
 2. 浏览器访问 `192.168.4.1`
 3. 输入信号参数，点击对应按钮
 
+## 编译
 
+### 方式一：GitHub Codespaces 在线编译
+
+1. 进入 `anpbn/RF-Controller` 仓库页面
+2. 点击 **Code** 下拉按钮 → **Codespaces** → 点击 **+** 创建新环境
+3. 等待加载完成
+4. 在下方终端输入：
+   ```bash
+   pip install platformio
+   pio run
