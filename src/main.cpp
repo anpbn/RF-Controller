@@ -85,7 +85,7 @@ void loop() {
 void doSend() {
   if (currentCode.length() > 0) {
     rf.setProtocol(currentProtocol);
-    rf    rf.send(currentCode.toInt(), currentBits);
+    rf.send(currentCode.toInt(), currentBits);
   }
 }
 
