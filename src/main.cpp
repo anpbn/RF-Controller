@@ -2,34 +2,38 @@
 #include <ESP8266WebServer.h>
 #include <RCSwitch.h>
 
-#define RF_TX_PIN 12      // D6 - RF发射
-#define LED_PIN 2         // 内置LED（GPIO2），低电平亮
-
+#define RF_TX_PIN 12
+#define LED_PIN 2
 #define AP_SSID "RF-Editor"
 #define AP_PASS "12345678"
 
 RCSwitch rf = RCSwitch();
 ESP8266WebServer server(80);
 
-// 发送状态
 bool continuousMode = false;
-bool singlePulse = false;      // 单次发送脉冲
+bool singlePulse = false;
 unsigned long lastSendTime = 0;
-unsigned long ledOffTime = 0;  // LED熄灭时间
-unsigned long timerEndTime = 0; // 定时结束时间
+unsigned long ledOffTime = 0;
+unsigned long timerEndTime = 0;
 int sendInterval = 500;
 unsigned long timerDelaySec = 0;
-
-// 当前信号参数
 String currentCode = "";
 int currentProtocol = 1;
 int currentBits = 24;
 
+// 函数声明
+void handleRoot();
+void handleSend();
+void handleStart();
+void handleStop();
+void handleTimer();
+void handleStatus();
+void doSend();
+
 void setup() {
   Serial.begin(115200);
-  
   pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, HIGH); // LED灭
+  digitalWrite(LED_PIN, HIGH);
   
   rf.enableTransmit(RF_TX_PIN);
   rf.setRepeatTransmit(3);
@@ -50,34 +54,29 @@ void loop() {
   server.handleClient();
   unsigned long now = millis();
   
-  // 处理持续发送
   if (continuousMode) {
-    digitalWrite(LED_PIN, LOW); // LED常亮表示发送中
+    digitalWrite(LED_PIN, LOW);
     if (now - lastSendTime >= (unsigned long)sendInterval) {
       doSend();
       lastSendTime = now;
     }
   }
-  // 处理单次脉冲
   else if (singlePulse) {
-    digitalWrite(LED_PIN, LOW); // LED亮
+    digitalWrite(LED_PIN, LOW);
     doSend();
     singlePulse = false;
-    ledOffTime = now + 100; // 100ms后灭
+    ledOffTime = now + 100;
   }
-  // 处理定时发送
   else if (timerDelaySec > 0 && now >= timerEndTime) {
     digitalWrite(LED_PIN, LOW);
     doSend();
-    timerDelaySec = 0; // 清除定时
+    timerDelaySec = 0;
     ledOffTime = now + 100;
   }
-  // LED熄灭判断
   else if (ledOffTime > 0 && now >= ledOffTime) {
-    digitalWrite(LED_PIN, HIGH); // LED灭
+    digitalWrite(LED_PIN, HIGH);
     ledOffTime = 0;
   }
-  // 空闲状态
   else if (!continuousMode && timerDelaySec == 0 && ledOffTime == 0) {
     digitalWrite(LED_PIN, HIGH);
   }
@@ -86,8 +85,7 @@ void loop() {
 void doSend() {
   if (currentCode.length() > 0) {
     rf.setProtocol(currentProtocol);
-    rf.send(currentCode.toInt(), currentBits);
-    Serial.println("Sent: " + currentCode);
+    rf    rf.send(currentCode.toInt(), currentBits);
   }
 }
 
@@ -114,7 +112,7 @@ button { width: 100%; padding: 16px; border: none; border-radius: 8px; font-size
 .btn-red { background: #ea4335; }
 .btn-yellow { background: #f9ab00; color: #333; }
 button:disabled { opacity: 0.5; }
-.hidden { display: none; }
+.hidden { display: none !important; }
 .status { text-align: center; padding: 12px; background: #e8f0fe; border-radius: 8px; margin-top: 10px; color: #1a73e8; font-weight: 500; }
 .countdown { font-size: 24px; color: #ea4335; }
 </style>
@@ -156,8 +154,6 @@ button:disabled { opacity: 0.5; }
 </div>
 
 <script>
-var timerInterval;
-
 function getData() {
   return {
     code: document.getElementById('code').value,
@@ -177,7 +173,6 @@ function startLoop() {
   if(!d.code) return alert('输入代码');
   var interval = document.getElementById('interval').value;
   fetch('/start', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'code='+d.code+'&protocol='+d.protocol+'&bits='+d.bits+'&interval='+interval});
-  
   document.getElementById('btnStart').classList.add('hidden');
   document.getElementById('btnStop').classList.remove('hidden');
 }
@@ -193,14 +188,11 @@ function startTimer() {
   if(!d.code) return alert('输入代码');
   var delay = document.getElementById('delay').value;
   fetch('/timer', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'code='+d.code+'&protocol='+d.protocol+'&bits='+d.bits+'&delay='+delay});
-  
-  // 显示倒计时
   var count = parseInt(delay);
   document.getElementById('btnTimer').disabled = true;
   document.getElementById('timerStatus').classList.remove('hidden');
   document.getElementById('countdown').innerText = count;
-  
-  timerInterval = setInterval(function() {
+  var timerInterval = setInterval(function() {
     count--;
     document.getElementById('countdown').innerText = count;
     if(count <= 0) {
@@ -249,6 +241,5 @@ void handleTimer() {
 }
 
 void handleStatus() {
-  String json = "{\"continuous\":" + String(continuousMode ? "true" : "false") + "}";
-  server.send(200, "application/json", json);
+  server.send(200, "application/json", "{\"ok\":true}");
 }
